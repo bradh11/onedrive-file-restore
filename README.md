@@ -22,10 +22,10 @@ This application was written to quickly restore files from version history based
 8. Your restore job could take a while. Be patient!
 9. a log file with the user email will be created on the local file system. This will have data for all files evaluated and the steps taken per file.
 
-## create an app in Azure for OneDrive / GraphAPI
+### create an app registration in Azure for OneDrive / GraphAPI
 
 https://docs.microsoft.com/en-us/onedrive/developer/rest-api/getting-started/app-registration?view=odsp-graph-online
 
-## getting access tokens for Graph API
+### getting access tokens for Graph API
 
 http://codematters.tech/getting-access-token-for-microsoft-graph-using-oauth-rest-api/
