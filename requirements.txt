@@ -1,0 +1,8 @@
+pyyaml
+requests
+msal
+python-dateutil
+flask
+flask-socketio
+flask_session
+rich
