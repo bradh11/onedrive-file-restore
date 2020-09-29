@@ -1,0 +1,23 @@
+# ONEDRIVE RESTORE APP CONFIG DETAILS
+
+restore_date: 2020-08-21T00:00:01Z
+MODE: DEV # default mode is logging only
+
+# WEB APP SETTINGS
+CLIENT_ID: <Client ID>
+CLIENT_SECRET: <Client Secret>
+
+# AUTHORITY = "https://login.microsoftonline.com/common"  # For multi-tenant
+AUTHORITY: "https://login.microsoftonline.com/<tenant ID>" # For single tenant
+
+REDIRECT_PATH: "/auth-callback" # It will be used to form an absolute URL
+#  URL must match your app's redirect_uri set in AAD
+
+DELEGATED_PERMISSONS: ["User.Read", "Files.ReadWrite"]
+APPLICATION_PERMISSIONS: ["https://database.windows.net//.default"]
+
+# Server Side cache
+SESSION_TYPE: "filesystem"
+
+# API endpoint to list logged in users drives
+GRAPH_ENDPOINT: "https://graph.microsoft.com/v1.0/me/drives"
