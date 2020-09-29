@@ -3,10 +3,9 @@ import sys
 import requests
 from flask import Flask, render_template, session, request, redirect, url_for
 from flask_session import Session  # https://pythonhosted.org/Flask-Session
+from flask_socketio import SocketIO, emit, send
 import msal
 import json
-
-# import app_config
 from main import OneDriveRestore
 from datetime import datetime
 import yaml
@@ -23,6 +22,7 @@ with open("config.yaml", "r") as f:
 app = Flask(__name__, static_folder="./web/dist/static", template_folder="./web/dist")
 app.config.from_object(app_config)
 Session(app)
+socketio = SocketIO(app, manage_session=False)
 
 # This section is needed for url_for("foo", _external=True) to automatically
 # generate http scheme when this sample is running on localhost,
@@ -31,6 +31,28 @@ Session(app)
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+
+@socketio.on("connect")
+def handle_json():
+    if not session.get("user"):
+        print(f"unauthorized connection attempted")
+        send({"message": "unauthorized"}, json=True)
+
+    print(f"user connected: {session['user'].get('preferred_username')}")
+    send(
+        {"message": f"{session['user'].get('preferred_username')} has connected"},
+        json=True,
+    )
+
+
+@socketio.on("restore_drive", namespace="/restore")
+def handle_my_custom_namespace_event(arg1, arg2, arg3):
+    print("received json: " + str(arg1))
+    print("received json: " + str(arg2))
+    print("received json: " + str(arg3))
+
+    emit("restore_response", json.dumps(arg2), json=True)
 
 
 @app.route("/")
@@ -205,4 +227,5 @@ def _get_token_from_cache(scope):
 app.jinja_env.globals.update(_build_auth_url=_build_auth_url)  # Used in template
 
 if __name__ == "__main__":
-    app.run(host="localhost")
+    socketio.run(app, host="localhost")
+    # app.run(host="localhost")

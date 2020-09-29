@@ -8,8 +8,13 @@
       integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
       crossorigin="anonymous"
     />
+    <script
+      src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"
+      integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I="
+      crossorigin="anonymous"
+    ></script>
   </head>
-  <body onLoad="scrollDiv_init()" style="padding-top: 65px">
+  <body style="padding-top: 115px">
     <!-- Displayed on top of a potentially large JSON response, so it will remain visible -->
     <div>
       {% include ['nav.html'] %}
@@ -29,7 +34,7 @@
                     class="form-control"
                     placeholder="example .89z8g"
                     id="encrypted_file_extension"
-                    value=""
+                    value=".89z8g"
                   />
                   <div class="input-group-append">
                     <div class="dropdown btn-group" role="group">
@@ -63,6 +68,13 @@
                       type="button"
                     >
                       Start Now!
+                    </button>
+                    <button
+                      class="btn btn-outline-primary"
+                      id="restore_drive"
+                      type="button"
+                    >
+                      Test Now!
                     </button>
                   </div>
                 </div>
@@ -100,10 +112,11 @@
                 <div class="card-header">
                   <h5 class="mb-0">Logging</h5>
                 </div>
-                <div id="logging-text" class="card-body">
-                  <p>paragraph 1</p>
-                  <p>paragraph 2</p>
-                </div>
+                <div
+                  id="logging-text"
+                  class="card-body"
+                  style="overflow: auto; height: 500px"
+                ></div>
               </div>
             </div>
           </div>
@@ -112,6 +125,9 @@
       <!-- Just a generic json viewer -->
     </div>
     <script language="javascript">
+      const socket = io();
+      const socket_restore = io("/restore");
+
       document.getElementById("selectDevMode").onclick = function () {
         document.getElementById("mode").innerHTML = "DEV";
         document.getElementById("mode").value = "DEV";
@@ -151,42 +167,40 @@
           .then(clearLoading());
       };
 
-      ScrollRate = 100;
+      socket.on("connect", function () {
+        socket.emit("message_event", { message: "brad connected" });
+      });
 
-      function scrollDiv_init() {
-        DivElmnt = document.getElementById("logging-text");
-        ReachedMaxScroll = false;
+      socket_restore.on("restore_response", function (response) {
+        $("#logging-text").prepend(
+          $(`<p>${response}</p>`)
+            .addClass("loggingClass")
+            .addClass("loggingHighlight")
+        );
+      });
 
-        DivElmnt.scrollTop = 0;
-        PreviousScrollTop = 0;
-
-        ScrollInterval = setInterval("scrollDiv()", ScrollRate);
-      }
-
-      function scrollDiv() {
-        if (!ReachedMaxScroll) {
-          DivElmnt.scrollTop = PreviousScrollTop;
-          PreviousScrollTop++;
-
-          ReachedMaxScroll =
-            DivElmnt.scrollTop >= DivElmnt.scrollHeight - DivElmnt.offsetHeight;
-        } else {
-          ReachedMaxScroll = DivElmnt.scrollTop == 0 ? false : true;
-
-          DivElmnt.scrollTop = PreviousScrollTop;
-          PreviousScrollTop--;
-        }
-      }
-
-      function pauseDiv() {
-        clearInterval(ScrollInterval);
-      }
-
-      function resumeDiv() {
-        PreviousScrollTop = DivElmnt.scrollTop;
-        ScrollInterval = setInterval("scrollDiv()", ScrollRate);
-      }
+      document.getElementById("restore_drive").onclick = function () {
+        setLoading();
+        let data = {
+          mode: document.getElementById("mode").value,
+          encrypted_file_extension: document.getElementById(
+            "encrypted_file_extension"
+          ).value,
+        };
+        socket_restore.emit(
+          "restore_drive",
+          { message: "json 1" },
+          { message: "json 2" },
+          { message: "json 3" }
+        );
+        clearLoading();
+      };
     </script>
+    <script
+      src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"
+      integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I="
+      crossorigin="anonymous"
+    ></script>
     <script
       src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
       integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
@@ -197,10 +211,18 @@
       integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
       crossorigin="anonymous"
     ></script>
-    <script
-      src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
-      integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
-      crossorigin="anonymous"
-    ></script>
+    <style>
+      .loggingClass {
+        width: 100%;
+        padding: 5px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+        color: rgb(35, 33, 33);
+        font-size: 15px;
+      }
+      .loggingHighlight:hover {
+        background-color: rgba(0, 0, 0, 0.03);
+      }
+    </style>
   </body>
 </html>

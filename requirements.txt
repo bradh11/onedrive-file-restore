@@ -6,3 +6,5 @@ flask
 flask-socketio
 flask_session
 rich
+wheel
+gevent-websocket
