@@ -395,3 +395,5 @@ yarn-error.log
 seafile-ignore.txt
 key/*
 /flask_session
+/config.yaml
+/app_config.py
