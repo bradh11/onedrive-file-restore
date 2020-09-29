@@ -142,6 +142,7 @@ def restore():
         service.token = _get_token_from_cache(app_config.DELEGATED_PERMISSONS)
         service.encrypted_file_extension = data["encrypted_file_extension"]
         service.MODE = data["mode"]
+
         try:
             service.run()
         except KeyboardInterrupt:
