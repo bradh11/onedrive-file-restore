@@ -155,10 +155,10 @@ def restore():
         print(
             f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}"
         )
-        return {"message": "job submitted successfully", "data": {data}}
+        return {"message": "job submitted successfully", "mode": data["mode"]}
 
     return {
-        "error": {},
+        "error": {"mode": data["mode"]},
         "message": "file extension is empty or does not start with a '.'",
     }
 
