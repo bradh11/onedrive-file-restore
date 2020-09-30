@@ -167,10 +167,6 @@
           .then(clearLoading());
       };
 
-      socket.on("connect", function () {
-        socket.emit("message_event", { message: "brad connected" });
-      });
-
       socket_restore.on("restore_response", function (response) {
         $("#logging-text").prepend(
           $(`<p>${response}</p>`)
@@ -187,12 +183,7 @@
             "encrypted_file_extension"
           ).value,
         };
-        socket_restore.emit(
-          "restore_drive",
-          { message: "json 1" },
-          { message: "json 2" },
-          { message: "json 3" }
-        );
+        socket_restore.emit("restore_drive", data);
         clearLoading();
       };
     </script>

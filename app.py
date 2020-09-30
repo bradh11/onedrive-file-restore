@@ -24,10 +24,7 @@ app.config.from_object(app_config)
 Session(app)
 socketio = SocketIO(app, manage_session=False)
 
-# This section is needed for url_for("foo", _external=True) to automatically
-# generate http scheme when this sample is running on localhost,
-# and to generate https scheme when it is deployed behind reversed proxy.
-# See also https://flask.palletsprojects.com/en/1.0.x/deploying/wsgi-standalone/#proxy-setups
+
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -47,12 +44,38 @@ def handle_json():
 
 
 @socketio.on("restore_drive", namespace="/restore")
-def handle_my_custom_namespace_event(arg1, arg2, arg3):
-    print("received json: " + str(arg1))
-    print("received json: " + str(arg2))
-    print("received json: " + str(arg3))
+def handle_my_custom_namespace_event(data):
+    start_time = datetime.now()
+    token = _get_token_from_cache(app_config.DELEGATED_PERMISSONS)
+    if not token:
+        return redirect(url_for("login"))
 
-    emit("restore_response", json.dumps(arg2), json=True)
+    if data["encrypted_file_extension"] != "" and data[
+        "encrypted_file_extension"
+    ].startswith("."):
+        service = OneDriveRestore(
+            config_file="config.yaml",
+            token=_get_token_from_cache(app_config.DELEGATED_PERMISSONS),
+            username=session["user"].get("preferred_username"),
+        )
+
+        service.encrypted_file_extension = data["encrypted_file_extension"]
+        service.MODE = data["mode"]
+        emit("restore_response", json.dumps(data), json=True)
+        try:
+            service.run()
+        except KeyboardInterrupt:
+            print(f"status: exiting program...")
+            print(
+                f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}"
+            )
+            sys.exit(0)
+
+        emit(
+            "restore_response",
+            f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}",
+        )
+    emit("restore_response", "no extension defined", json=True)
 
 
 @app.route("/")
