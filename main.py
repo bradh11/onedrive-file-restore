@@ -19,7 +19,6 @@ from logging import FileHandler
 from rich.logging import RichHandler
 from rich import print
 
-
 cpu_count = os.cpu_count()
 thread_count = os.cpu_count() * 5
 print(f"CPU COUNT:     {cpu_count}")
