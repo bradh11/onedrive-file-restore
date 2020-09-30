@@ -165,49 +165,6 @@ def restore_page():
     return render_template("restore.html", data=data, user=session["user"])
 
 
-@app.route("/restore", methods=["POST"])
-def restore():
-    token = _get_token_from_cache(app_config.DELEGATED_PERMISSONS)
-    if not token:
-        return redirect(url_for("login"))
-
-    # TODO: Parse form data here
-    data = json.loads(request.data)  # a multidict containing POST data
-
-    start_time = datetime.now()
-
-    if data["encrypted_file_extension"] != "" and data[
-        "encrypted_file_extension"
-    ].startswith("."):
-        service = OneDriveRestore(
-            config_file="config.yaml",
-            token=_get_token_from_cache(app_config.DELEGATED_PERMISSONS),
-            username=session["user"].get("preferred_username"),
-        )
-        service.token = _get_token_from_cache(app_config.DELEGATED_PERMISSONS)
-        service.encrypted_file_extension = data["encrypted_file_extension"]
-        service.MODE = data["mode"]
-
-        try:
-            service.run()
-        except KeyboardInterrupt:
-            print(f"status: exiting program...")
-            print(
-                f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}"
-            )
-            sys.exit(0)
-
-        print(
-            f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}"
-        )
-        return {"message": "job submitted successfully", "mode": data["mode"]}
-
-    return {
-        "error": {"mode": data["mode"]},
-        "message": "file extension is empty or does not start with a '.'",
-    }
-
-
 def _load_cache():
     cache = msal.SerializableTokenCache()
     if session.get("token_cache"):
