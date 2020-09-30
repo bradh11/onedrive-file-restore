@@ -15,11 +15,21 @@
       crossorigin="anonymous"
     ></script>
   </head>
-  <body style="padding-top: 115px">
+  <body>
     <!-- Displayed on top of a potentially large JSON response, so it will remain visible -->
     <div>
       {% include ['nav.html'] %}
       <div>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#">Documents</a></li>
+            <li class="breadcrumb-item"><a href="#">subfolder 1</a></li>
+            <li class="breadcrumb-item active" aria-current="page">
+              subfolder 2
+            </li>
+          </ol>
+        </nav>
+
         <div class="container">
           <div class="row">
             <div class="col-md-6">
