@@ -351,11 +351,3 @@ class OneDriveRestore:
             sys.exit(0)
         except Exception as e:
             self.log.error(e)
-
-
-if __name__ == "__main__":
-    service = OneDriveRestore("config.yaml")
-    service.run()
-    print(
-        f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - service.start_time}"
-    )
