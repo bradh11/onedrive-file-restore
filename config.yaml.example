@@ -1,7 +1,6 @@
 # ONEDRIVE RESTORE APP CONFIG DETAILS
 
 restore_date: 2020-08-21T00:00:01Z
-MODE: DEV # default mode is logging only
 
 # WEB APP SETTINGS
 CLIENT_ID: <Client ID>
