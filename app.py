@@ -53,6 +53,7 @@ def handle_my_custom_namespace_event(data):
     if data["encrypted_file_extension"] != "" and data[
         "encrypted_file_extension"
     ].startswith("."):
+        emit("restore_response", json.dumps(data), json=True)
         service = OneDriveRestore(
             config_file="config.yaml",
             token=_get_token_from_cache(app_config.DELEGATED_PERMISSONS),
@@ -61,7 +62,7 @@ def handle_my_custom_namespace_event(data):
 
         service.encrypted_file_extension = data["encrypted_file_extension"]
         service.MODE = data["mode"]
-        emit("restore_response", json.dumps(data), json=True)
+
         try:
             service.run()
         except KeyboardInterrupt:
@@ -70,7 +71,9 @@ def handle_my_custom_namespace_event(data):
                 f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}"
             )
             sys.exit(0)
-
+        service.log.info(
+            f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}"
+        )
         emit(
             "restore_response",
             f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}",

@@ -346,7 +346,7 @@ class OneDriveRestore:
         except KeyboardInterrupt:
             self.log.info(f"status: exiting program...")
             self.log.error(
-                f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - self.start_time}"
+                f"status: repaired {self.q_fixed_files.unfinished_tasks + 1} of {self.q_files} files and {self.q_folders} folders in {datetime.now() - self.start_time}"
             )
             sys.exit(0)
         except Exception as e:
