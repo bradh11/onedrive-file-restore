@@ -165,7 +165,11 @@ def restore_page():
     with open("config.yaml", "r") as f:
         data = yaml.safe_load(f.read())
 
-    return render_template("restore.html", data=data, user=session["user"])
+    return render_template(
+        "restore.html",
+        restore_date=data["restore_date"],
+        user=session["user"],
+    )
 
 
 def _load_cache():

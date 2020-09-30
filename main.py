@@ -60,7 +60,7 @@ class OneDriveRestore:
         self.encrypted_file_extension = self.config.get("encrypted_file_extension")
         self.restore_date = self.config.get("restore_date")
 
-        self.MODE = self.config.get("MODE", "DEV")
+        self.MODE = "DEV"
         self.log = self.init_logger()
         self.log.info(f"starting in {self.MODE} mode...")
 
