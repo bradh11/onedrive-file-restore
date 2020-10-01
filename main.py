@@ -18,6 +18,7 @@ import logging
 from logging import FileHandler
 from rich.logging import RichHandler
 from rich import print
+import asyncio
 
 cpu_count = os.cpu_count()
 thread_count = os.cpu_count() * 5
@@ -45,17 +46,8 @@ class OneDriveRestore:
         with open(config_file, "r") as f:
             self.config = yaml.safe_load(f)
 
-        if not token:
-            self.token = self.config.get("token")
-        else:
-            # set token when instantiating the class
-            self.token = token
-        if not username:
-            self.username = self.config.get("username")
-        else:
-            # set username when instantiating the class
-            self.username = username
-
+        self.token = token
+        self.username = username
         self.encrypted_file_extension = self.config.get("encrypted_file_extension")
         self.restore_date = self.config.get("restore_date")
 
@@ -337,9 +329,8 @@ class OneDriveRestore:
             else:
                 self.log.info(f"{item['id']} file {self.q_files}  - {item['name']}")
 
-    def process_items(self, data):
-        drive_id = data["drive_id"]
-        items = data["items"]
+    def process_items(self, items):
+
         for item in items:
             if "folder" in item.keys():
                 self.q_folders = self.q_folders + 1
@@ -367,16 +358,12 @@ class OneDriveRestore:
     def run(self):
         self.start_time = datetime.now()
         self.log.info(f"status: starting restore")
-        mydrive = self.get_drive()
-        mydrive_id = self.get_drive_id(mydrive)
-        folder_items = self.get_root_folder_items()
-        data = {}
-        data["drive_id"] = mydrive_id
-        data["items"] = folder_items
+        root_folder_items = self.get_root_folder_items()
+
         try:
-            self.process_items(data)
+            self.process_items(root_folder_items)
         except KeyboardInterrupt:
-            self.log.info(f"status: exiting program...")
+            self.log.info(f"status: Keyboard Interrupt.  Exiting program...")
             self.log.error(
                 f"status: repaired {self.q_fixed_files.unfinished_tasks} of {self.q_files} files and {self.q_folders} folders in {datetime.now() - self.start_time}"
             )
