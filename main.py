@@ -147,25 +147,62 @@ class OneDriveRestore:
             self.log.error(e)
             sys.exit(0)
 
+    def get_paginated_items(self, nextlink):
+        try:
+            data = self.sess.get(url=nextlink, headers=self.refresh_header(self.token))
+            json_data = data.json()
+            return json_data
+        except Exception as e:
+            self.log.error(e)
+
     def get_root_folder_items(self):
+        items = []
         try:
             root_folder_url = f"{self.base_url}drives/{self.drive_id}/root/children"
             data = self.sess.get(
                 url=root_folder_url, headers=self.refresh_header(self.token)
-            ).json()
-            return data
+            )
+            json_data = data.json()
+
+            items = items + json_data["value"]
+            if "@odata.nextLink" in json_data:
+                next_link = json_data["@odata.nextLink"]
+                while next_link:
+                    self.log.info(
+                        f"{self.drive_id} paginating - {len(items)} items - root folder"
+                    )
+                    json_data = self.get_paginated_items(next_link)
+                    items = items + json_data["value"]
+                    if "@odata.nextLink" in json_data:
+                        next_link = json_data["@odata.nextLink"]
+                    else:
+                        next_link = None
+            return items
+
         except Exception as e:
             self.log.error(e)
 
     def get_child_items(self, item_id):
+        items = []
         try:
             child_url = (
                 f"{self.base_url}drives/{self.drive_id}/items/{item_id}/children"
             )
-            child_items = self.sess.get(
-                url=child_url, headers=self.refresh_header(self.token)
-            )
-            return child_items.json()
+            data = self.sess.get(url=child_url, headers=self.refresh_header(self.token))
+            json_data = data.json()
+            items = items + json_data["value"]
+            if "@odata.nextLink" in json_data:
+                next_link = json_data["@odata.nextLink"]
+                while next_link:
+                    self.log.info(f"{item_id} paginating - {len(items)} items")
+                    json_data = self.get_paginated_items(next_link)
+                    items = items + json_data["value"]
+                    if "@odata.nextLink" in json_data:
+                        next_link = json_data["@odata.nextLink"]
+                    else:
+                        next_link = None
+
+            return items
         except Exception as e:
             self.log.error(e)
 
@@ -222,7 +259,10 @@ class OneDriveRestore:
             response = self.sess.post(
                 url=version_url, headers=self.refresh_header(self.token), json=payload
             )
-            return response
+            if response.status_code == 204:
+                return response.status_code
+            elif response.status_code == 400:
+                return response.json()["error"]["message"]
         except Exception as e:
             self.log.error(e)
 
@@ -278,13 +318,10 @@ class OneDriveRestore:
             self.q_folders = self.q_folders + 1
             self.log.info(f"{item['id']} folder {self.q_folders} - {item['name']}")
             subfolder_items = self.get_child_items(item_id=item["id"])
-            subfolder_data = {}
-            subfolder_data["drive_id"] = self.drive_id
-            subfolder_data["items"] = subfolder_items
             try:
                 pool.map(
                     self.mprocess_items,
-                    subfolder_data["items"]["value"],
+                    subfolder_items,
                     chunksize=thread_count * 3,
                 )
             except Exception as e:
@@ -303,19 +340,15 @@ class OneDriveRestore:
     def process_items(self, data):
         drive_id = data["drive_id"]
         items = data["items"]
-        for item in items["value"]:
+        for item in items:
             if "folder" in item.keys():
                 self.q_folders = self.q_folders + 1
                 self.log.info(f"{item['id']} folder {self.q_folders} - {item['name']}")
                 subfolder_items = self.get_child_items(item_id=item["id"])
-                subfolder_data = {}
-                subfolder_data["drive_id"] = drive_id
-                subfolder_data["items"] = subfolder_items
-                # pool.imap_unordered(process_items, data)
                 try:
                     pool.map(
                         self.mprocess_items,
-                        subfolder_data["items"]["value"],
+                        subfolder_items,
                         chunksize=thread_count * 3,
                     )
                 except Exception as e:
@@ -345,7 +378,7 @@ class OneDriveRestore:
         except KeyboardInterrupt:
             self.log.info(f"status: exiting program...")
             self.log.error(
-                f"status: repaired {self.q_fixed_files.unfinished_tasks + 1} of {self.q_files} files and {self.q_folders} folders in {datetime.now() - self.start_time}"
+                f"status: repaired {self.q_fixed_files.unfinished_tasks} of {self.q_files} files and {self.q_folders} folders in {datetime.now() - self.start_time}"
             )
             sys.exit(0)
         except Exception as e:

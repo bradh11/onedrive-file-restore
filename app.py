@@ -68,15 +68,15 @@ def handle_my_custom_namespace_event(data):
         except KeyboardInterrupt:
             print(f"status: exiting program...")
             print(
-                f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}"
+                f"status: repaired {service.q_fixed_files.unfinished_tasks} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}"
             )
             sys.exit(0)
         service.log.info(
-            f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}"
+            f"status: repaired {service.q_fixed_files.unfinished_tasks} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}"
         )
         emit(
             "restore_response",
-            f"status: repaired {service.q_fixed_files.unfinished_tasks + 1} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}",
+            f"status: repaired {service.q_fixed_files.unfinished_tasks} of {service.q_files} files and {service.q_folders} folders in {datetime.now() - start_time}",
         )
     emit("restore_response", "no extension defined", json=True)
 
