@@ -86,7 +86,13 @@ def index():
     if not session.get("user"):
         return redirect(url_for("login"))
 
-    return render_template("index.html", user=session["user"], version=msal.__version__)
+    token = _get_token_from_cache(app_config.DELEGATED_PERMISSONS)
+    user_data = requests.get(  # Use token to call downstream service
+        url="https://graph.microsoft.com/v1.0/me/",
+        headers={"Authorization": "Bearer " + token["access_token"]},
+    ).json()
+
+    return render_template("index.html", user=user_data, version=msal.__version__)
 
 
 @app.route("/login")
