@@ -60,7 +60,14 @@ signal.signal(signal.SIGINT, original_sigint_handler)
 
 
 class OneDriveRestore:
-    def __init__(self, config_file, token=None, username=None):
+    def __init__(
+        self,
+        config_file,
+        token=None,
+        encrypted_file_extension=None,
+        username=None,
+        MODE="DEV",
+    ):
         self.q_files = 0
         self.q_folders = 0
         self.q_fixed_files = Queue()
@@ -74,10 +81,10 @@ class OneDriveRestore:
         self.token = _get_token_from_cache(app_config.DELEGATED_PERMISSONS)
 
         self.username = username
-        self.encrypted_file_extension = self.config.get("encrypted_file_extension")
+        self.encrypted_file_extension = encrypted_file_extension
         self.restore_date = self.config.get("restore_date")
-
-        self.MODE = "DEV"
+        self.bogus_file = self.get_bogus_filename()
+        self.MODE = MODE
         self.log = self.init_logger()
         self.log.info(f"starting in {self.MODE} mode...")
 
@@ -99,7 +106,7 @@ class OneDriveRestore:
         self.sess.mount("http://", self.adapter)
         self.sess.mount("https://", self.adapter)
         self.base_url = "https://graph.microsoft.com/v1.0/"
-        self.header = self.refresh_header(self.token)
+        self.header = self.refresh_header()
 
         self.user_drive_url = f"{self.base_url}users/{self.username}/drives"
         self.drive = self.get_drive()
@@ -125,10 +132,10 @@ class OneDriveRestore:
     #     print(token_data)
     #     return token_data
 
-    def refresh_header(self, token):
-        access_token = token["access_token"]
+    def refresh_header(self):
+        access_token = _get_token_from_cache(app_config.DELEGATED_PERMISSONS)
         header = {
-            "authorization": f"bearer {access_token}",
+            "authorization": f"bearer {access_token['access_token']}",
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
@@ -154,7 +161,7 @@ class OneDriveRestore:
         try:
             response = self.sess.get(
                 url="https://graph.microsoft.com/v1.0/me/",
-                headers=self.refresh_header(self.token),
+                headers=self.refresh_header(),
             )
             return response
         except Exception as e:
@@ -164,7 +171,7 @@ class OneDriveRestore:
     def get_drive(self):
         try:
             mydrive = self.sess.get(
-                url=self.user_drive_url, headers=self.refresh_header(self.token)
+                url=self.user_drive_url, headers=self.refresh_header()
             ).json()
             if "error" in mydrive.keys():
                 self.log.error(mydrive["error"]["message"])
@@ -187,7 +194,7 @@ class OneDriveRestore:
 
     def get_paginated_items(self, nextlink):
         try:
-            data = self.sess.get(url=nextlink, headers=self.refresh_header(self.token))
+            data = self.sess.get(url=nextlink, headers=self.refresh_header())
             json_data = data.json()
             return json_data
         except Exception as e:
@@ -197,9 +204,7 @@ class OneDriveRestore:
         items = []
         try:
             root_folder_url = f"{self.base_url}drives/{self.drive_id}/root/children"
-            data = self.sess.get(
-                url=root_folder_url, headers=self.refresh_header(self.token)
-            )
+            data = self.sess.get(url=root_folder_url, headers=self.refresh_header())
             json_data = data.json()
 
             items = items + json_data["value"]
@@ -226,7 +231,7 @@ class OneDriveRestore:
             child_url = (
                 f"{self.base_url}drives/{self.drive_id}/items/{item_id}/children"
             )
-            data = self.sess.get(url=child_url, headers=self.refresh_header(self.token))
+            data = self.sess.get(url=child_url, headers=self.refresh_header())
             json_data = data.json()
             items = items + json_data["value"]
             if "@odata.nextLink" in json_data:
@@ -249,9 +254,7 @@ class OneDriveRestore:
             item_url = (
                 f"{self.base_url}drives/{self.drive_id}/items/{item['id']}/versions"
             )
-            versions = self.sess.get(
-                url=item_url, headers=self.refresh_header(self.token)
-            ).json()
+            versions = self.sess.get(url=item_url, headers=self.refresh_header()).json()
             return versions["value"]
         except Exception as e:
             self.log.error(e)
@@ -295,7 +298,7 @@ class OneDriveRestore:
             version_url = f"{self.base_url}drives/{self.drive_id}/items/{item['id']}/versions/{version_id}/restoreVersion"
             payload = {}
             response = self.sess.post(
-                url=version_url, headers=self.refresh_header(self.token), json=payload
+                url=version_url, headers=self.refresh_header(), json=payload
             )
             if response.status_code == 204:
                 return response.status_code
@@ -312,7 +315,7 @@ class OneDriveRestore:
             if self.MODE == "PROD":
                 response = self.sess.patch(
                     url=item_url,
-                    headers=self.refresh_header(self.token),
+                    headers=self.refresh_header(),
                     json=item_data,
                 ).json()
                 self.log.info(f"rename file: {item['name']} ----> {new_name}")
@@ -325,12 +328,28 @@ class OneDriveRestore:
         except Exception as e:
             self.log.error(e)
 
+    def get_bogus_filename(self):
+        ext = self.encrypted_file_extension.split(".")[1]
+        bogus_filename = f"{ext}-readme.txt"
+        return bogus_filename
+
+    def remove_bogus_file(self, item):
+        item_url = f"{self.base_url}drives/{self.drive_id}/items/{item['id']}"
+        if self.MODE == "PROD":
+            response = self.sess.delete(item_url, headers=self.refresh_header()).json()
+            self.info.log(
+                f"remove bogus file: <DEV-MODE-SIMULATION> {item['name']} -- {response.status_code}"
+            )
+        else:
+            self.log.info(f"remove bogus file: <DEV-MODE-SIMULATION> {item['name']}")
+
+        print(item_url)
+
     def fix_file(self, item):
         version_history = self.check_version_history(item=item)
         self.log.info(f"status: checking versions...")
         good_version = self.retrieve_good_version(version_history)
 
-        # TODO: restore the good version here
         if good_version["id"] > 0:
             if self.MODE == "PROD":
                 restore_result = self.restore_version(
@@ -356,14 +375,16 @@ class OneDriveRestore:
             self.q_folders = self.q_folders + 1
             self.log.info(f"{item['id']} folder {self.q_folders} - {item['name']}")
             subfolder_items = self.get_child_items(item_id=item["id"])
-            try:
-                pool.map(
-                    self.mprocess_items,
-                    subfolder_items,
-                    chunksize=thread_count * 3,
-                )
-            except Exception as e:
-                self.log.error(e)
+            for subfolder_item in subfolder_items:
+                self.mprocess_items(subfolder_item)
+            # try:
+            #     pool.map(
+            #         self.mprocess_items,
+            #         subfolder_items,
+            #         chunksize=thread_count * 3,
+            #     )
+            # except Exception as e:
+            #     self.log.error(e)
             # self.process_items(data)
         elif "file":
             self.q_files = self.q_files + 1
@@ -374,6 +395,8 @@ class OneDriveRestore:
                 self.log.info(f"#############################################\n")
             else:
                 self.log.info(f"{item['id']} file {self.q_files}  - {item['name']}")
+                if item["name"] == self.bogus_file:
+                    self.remove_bogus_file(item)
 
     def process_items(self, items):
 
@@ -382,14 +405,16 @@ class OneDriveRestore:
                 self.q_folders = self.q_folders + 1
                 self.log.info(f"{item['id']} folder {self.q_folders} - {item['name']}")
                 subfolder_items = self.get_child_items(item_id=item["id"])
-                try:
-                    pool.map(
-                        self.mprocess_items,
-                        subfolder_items,
-                        chunksize=thread_count * 3,
-                    )
-                except Exception as e:
-                    self.log.error(e)
+                for subfolder_item in subfolder_items:
+                    self.mprocess_items(subfolder_item)
+                # try:
+                #     pool.map(
+                #         self.mprocess_items,
+                #         subfolder_items,
+                #         chunksize=thread_count * 3,
+                #     )
+                # except Exception as e:
+                #     self.log.error(e)
                 # self.process_items(data)
             elif "file":
                 self.q_files = self.q_files + 1
@@ -400,6 +425,8 @@ class OneDriveRestore:
                     self.log.info(f"#############################################\n")
                 else:
                     self.log.info(f"{item['id']} file {self.q_files}  - {item['name']}")
+                    if item["name"] == self.bogus_file:
+                        self.remove_bogus_file(item)
 
     def run(self):
         self.start_time = datetime.now()
@@ -445,12 +472,10 @@ def handle_my_custom_namespace_event(data):
         cache = _load_cache()
         service = OneDriveRestore(
             config_file="config.yaml",
-            # token=_get_token_from_cache(app_config.DELEGATED_PERMISSONS),
+            encrypted_file_extension=data["encrypted_file_extension"],
             username=session["user"].get("preferred_username"),
+            MODE=data["mode"],
         )
-
-        service.encrypted_file_extension = data["encrypted_file_extension"]
-        service.MODE = data["mode"]
 
         try:
             service.run()
