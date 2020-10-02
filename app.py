@@ -52,11 +52,11 @@ print(f"THREAD COUNT:  {thread_count}")
 print(f"=" * 17)
 
 # create the thread pool and make it interruptable
-set_start_method("spawn")
-freeze_support()
-original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-pool = ThreadPool(thread_count)
-signal.signal(signal.SIGINT, original_sigint_handler)
+# set_start_method("spawn")
+# freeze_support()
+# original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+# pool = ThreadPool(thread_count)
+# signal.signal(signal.SIGINT, original_sigint_handler)
 
 
 class OneDriveRestore:
@@ -67,12 +67,14 @@ class OneDriveRestore:
         encrypted_file_extension=None,
         username=None,
         MODE="DEV",
+        emit=emit,
     ):
         self.q_files = 0
         self.q_folders = 0
         self.q_fixed_files = Queue()
         self.q_unfixed_files = Queue()
         self.queue = Queue()
+        self.emit = emit
 
         # load config file
         with open(config_file, "r") as f:
@@ -87,7 +89,6 @@ class OneDriveRestore:
         self.MODE = MODE
         self.log = self.init_logger()
         self.log.info(f"starting in {self.MODE} mode...")
-
         # initialize requests session pools to be a multiple of threadcount
         self.retry_strategy = Retry(
             total=3,
@@ -475,6 +476,7 @@ def handle_my_custom_namespace_event(data):
             encrypted_file_extension=data["encrypted_file_extension"],
             username=session["user"].get("preferred_username"),
             MODE=data["mode"],
+            # emit=emit,
         )
 
         try:
@@ -635,5 +637,5 @@ app.jinja_env.globals.update(_build_auth_url=_build_auth_url)  # Used in templat
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="localhost")
+    socketio.run(app, host="localhost", port=5000)
     # app.run(host="localhost")
