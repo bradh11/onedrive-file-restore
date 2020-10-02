@@ -337,10 +337,13 @@ class OneDriveRestore:
     def remove_bogus_file(self, item):
         item_url = f"{self.base_url}drives/{self.drive_id}/items/{item['id']}"
         if self.MODE == "PROD":
-            response = self.sess.delete(item_url, headers=self.refresh_header()).json()
-            self.info.log(
-                f"remove bogus file: <DEV-MODE-SIMULATION> {item['name']} -- {response.status_code}"
-            )
+            try:
+                response = self.sess.delete(url=item_url, headers=self.refresh_header())
+                self.log.info(
+                    f"remove bogus file: {item['name']} -- {response.status_code}"
+                )
+            except Exception as e:
+                self.log.error(e)
         else:
             self.log.info(f"remove bogus file: <DEV-MODE-SIMULATION> {item['name']}")
 
