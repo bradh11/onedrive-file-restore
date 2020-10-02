@@ -20,3 +20,5 @@ SESSION_TYPE: "filesystem"
 
 # API endpoint to list logged in users drives
 GRAPH_ENDPOINT: "https://graph.microsoft.com/v1.0/me/drives"
+
+PORT: 5000

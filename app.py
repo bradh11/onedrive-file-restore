@@ -640,5 +640,5 @@ app.jinja_env.globals.update(_build_auth_url=_build_auth_url)  # Used in templat
 
 
 if __name__ == "__main__":
-    socketio.run(app, host="localhost", port=5000)
+    socketio.run(app, host="localhost", port=app_config.PORT)
     # app.run(host="localhost")
