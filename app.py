@@ -117,22 +117,6 @@ class OneDriveRestore:
         for item in self.token_cache["AccessToken"].values():
             return item["secret"]
 
-    # def refresh_access_token(self):
-    #     url = f"{self.config.get('AUTHORITY')}/oauth2/v2.0/token"
-    #     payload = {
-    #         "grant_type": "refresh_token",
-    #         "refresh_token": self.refresh_token,
-    #         "client_id": self.config.get("CLIENT_ID"),
-    #         "client_secret": self.config.get("CLIENT_SECRET"),
-    #         "scope": self.config.get("APPLICATION_PERMISSIONS"),
-    #         "redirect_uri": (f"http://localhost{self.config.get('REDIRECT_PATH')}"),
-    #     }
-    #     token_data = requests.post(
-    #         url=url, data=payload, headers={"Contant-Type": "application/json"}
-    #     )
-    #     print(token_data)
-    #     return token_data
-
     def refresh_header(self):
         access_token = _get_token_from_cache(app_config.DELEGATED_PERMISSONS)
         header = {
